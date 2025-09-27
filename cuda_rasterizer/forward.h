@@ -62,7 +62,13 @@ namespace FORWARD
 		const float* bg_color,
 		float* out_color,
 		float* depths,
-		float* depth);
+		float* depth,
+		// 每个像素对应的高斯数量
+        const int MAX_GAUSSPERPIXEL,
+        // === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
+        int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
+        int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+	);
 }
 
 
