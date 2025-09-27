@@ -285,7 +285,13 @@ renderCUDA(
 	const float* __restrict__ bg_color,
 	float* __restrict__ out_color,
 	const float* __restrict__ depths,
-	float* __restrict__ invdepth)
+	float* __restrict__ invdepth,
+	// 每个像素对应的高斯数量
+	const int MAX_GAUSSPERPIXEL,
+	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
+	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
+	int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+)
 {
 	// Identify current tile and associated min/max pixel range.
 	auto block = cg::this_thread_block();
@@ -318,6 +324,18 @@ renderCUDA(
 	float C[CHANNELS] = { 0 };
 
 	float expected_invdepth = 0.0f;
+	// === 每像素本地写入计数 ===
+	int local_written = 0; // 本线程已写入到 pixel_gaussian_ids 中的数量
+	int base_index = 0;
+	if (inside) {
+		base_index = pix_id * MAX_GAUSSPERPIXEL;
+		// 初始化计数与槽位（设为 -1 表示空）
+		pixel_gaussian_counts[pix_id] = 0;
+		// 将槽位置 -1（可选，但便于后续分析/调试）
+		for (int k = 0; k < MAX_GAUSSPERPIXEL; ++k) {
+			pixel_gaussian_ids[base_index + k] = -1;
+		}
+	}
 
 	// Iterate over batches until all done or range is complete
 	for (int i = 0; i < rounds; i++, toDo -= BLOCK_SIZE)
@@ -373,6 +391,13 @@ renderCUDA(
 
 			if(invdepth)
 			expected_invdepth += (1 / depths[collected_id[j]]) * alpha * T;
+			// === 记录该像素的高斯 id（如果还有槽位） ===
+			if (inside && local_written < MAX_GAUSSPERPIXEL) {
+				pixel_gaussian_ids[base_index + local_written] = collected_id[j];
+				local_written += 1;
+				// 将当前写入计数回写到全局计数数组，便于 host 读取
+				pixel_gaussian_counts[pix_id] = local_written;
+			}
 
 			T = test_T;
 
@@ -409,7 +434,13 @@ void FORWARD::render(
 	const float* bg_color,
 	float* out_color,
 	float* depths,
-	float* depth)
+	float* depth,
+	// 每个像素对应的高斯数量
+	const int MAX_GAUSSPERPIXEL,
+	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
+	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
+	int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+	)
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
 		ranges,
@@ -423,7 +454,10 @@ void FORWARD::render(
 		bg_color,
 		out_color,
 		depths, 
-		depth);
+		depth,
+		MAX_GAUSSPERPIXEL,
+		pixel_gaussian_ids,
+		pixel_gaussian_counts);
 }
 
 void FORWARD::preprocess(int P, int D, int M,

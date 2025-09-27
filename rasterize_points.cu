@@ -32,7 +32,7 @@ std::function<char*(size_t N)> resizeFunctional(torch::Tensor& t) {
     return lambda;
 }
 
-std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
+std::tuple<int, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>
 RasterizeGaussiansCUDA(
 	const torch::Tensor& background,
 	const torch::Tensor& means3D,
@@ -53,6 +53,7 @@ RasterizeGaussiansCUDA(
 	const torch::Tensor& campos,
 	const bool prefiltered,
 	const bool antialiasing,
+	const int MAX_GAUSSPERPIXEL,
 	const bool debug)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -85,6 +86,13 @@ RasterizeGaussiansCUDA(
   std::function<char*(size_t)> imgFunc = resizeFunctional(imgBuffer);
   
   int rendered = 0;
+  // 假设 device 和 stream/launcher 等已有
+  const int64_t NP = (int64_t)H * (int64_t)W;
+  const int64_t ids_len = NP * MAX_GAUSSPERPIXEL;
+
+  // 在 host (C++) 层分配输出 tensor（int32）
+  auto pixel_gaussian_ids = torch::full({ids_len}, -1, torch::dtype(torch::kInt32).device(device));
+  auto pixel_gaussian_counts = torch::zeros({NP}, torch::dtype(torch::kInt32).device(device));
   if(P != 0)
   {
 	  int M = 0;
@@ -118,9 +126,12 @@ RasterizeGaussiansCUDA(
 		out_invdepthptr,
 		antialiasing,
 		radii.contiguous().data<int>(),
+		MAX_GAUSSPERPIXEL,
+		pixel_gaussian_ids.contiguous().data_ptr<int>(),
+		pixel_gaussian_counts.contiguous().data_ptr<int>(),
 		debug);
   }
-  return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer, out_invdepth);
+  return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer, out_invdepth, pixel_gaussian_ids, pixel_gaussian_counts);
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>

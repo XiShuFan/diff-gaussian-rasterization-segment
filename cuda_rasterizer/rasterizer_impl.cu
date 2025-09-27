@@ -219,6 +219,11 @@ int CudaRasterizer::Rasterizer::forward(
 	float* depth,
 	bool antialiasing,
 	int* radii,
+	// 每个像素对应的高斯数量
+	const int MAX_GAUSSPERPIXEL,
+	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
+	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
+	int* __restrict__ pixel_gaussian_counts,  // shape: (H*W)
 	bool debug)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
@@ -335,7 +340,10 @@ int CudaRasterizer::Rasterizer::forward(
 		background,
 		out_color,
 		geomState.depths,
-		depth), debug)
+		depth,
+		MAX_GAUSSPERPIXEL,
+		pixel_gaussian_ids,
+		pixel_gaussian_counts), debug)
 
 	return num_rendered;
 }
