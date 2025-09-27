@@ -52,7 +52,7 @@ namespace CudaRasterizer
 			float* depth,
 			bool antialiasing,
 			int* radii = nullptr,
-			const int MAX_GAUSSPERPIXEL,
+			const int MAX_GAUSSPERPIXEL = 50,
 			int* pixel_gaussian_ids = nullptr,
 			int* pixel_gaussian_counts = nullptr,
 			bool debug = false);
