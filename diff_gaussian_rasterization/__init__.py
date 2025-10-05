@@ -155,6 +155,7 @@ class GaussianRasterizationSettings(NamedTuple):
     prefiltered : bool
     debug : bool
     antialiasing : bool
+    MAX_GAUSSPERPIXEL: int
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):
