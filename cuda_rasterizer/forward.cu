@@ -290,7 +290,9 @@ renderCUDA(
 	const int MAX_GAUSSPERPIXEL,
 	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
 	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
-	int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+	int* __restrict__ pixel_gaussian_counts,  // shape: (H*W)
+	const float T_THRESHOLD,   // alpha early-stop 阈值
+	const int   K_MAX          // 每像素最多融合的高斯数量
 )
 {
 	// Identify current tile and associated min/max pixel range.
@@ -322,6 +324,7 @@ renderCUDA(
 	uint32_t contributor = 0;
 	uint32_t last_contributor = 0;
 	float C[CHANNELS] = { 0 };
+	int merged = 0;
 
 	float expected_invdepth = 0.0f;
 	// === 每像素本地写入计数 ===
@@ -379,11 +382,20 @@ renderCUDA(
 			if (alpha < 1.0f / 255.0f)
 				continue;
 			float test_T = T * (1 - alpha);
-			if (test_T < 0.0001f)
+			if (test_T < T_THRESHOLD)
 			{
 				done = true;
 				continue;
 			}
+
+			// K_MAX=-1 表示不限制融合数量
+			if (K_MAX != -1 && merged >= K_MAX) {
+				done = true;
+				continue;
+			}
+			
+			// 融合的高斯数量
+			merged += 1;
 
 			// Eq. (3) from 3D Gaussian splatting paper.
 			for (int ch = 0; ch < CHANNELS; ch++)
@@ -439,7 +451,9 @@ void FORWARD::render(
 	const int MAX_GAUSSPERPIXEL,
 	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
 	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
-	int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+	int* __restrict__ pixel_gaussian_counts,  // shape: (H*W)
+	const float T_THRESHOLD,   // alpha early-stop 阈值
+	const int   K_MAX          // 每像素最多融合的高斯数量
 	)
 {
 	renderCUDA<NUM_CHANNELS> << <grid, block >> > (
@@ -457,7 +471,9 @@ void FORWARD::render(
 		depth,
 		MAX_GAUSSPERPIXEL,
 		pixel_gaussian_ids,
-		pixel_gaussian_counts);
+		pixel_gaussian_counts,
+		T_THRESHOLD,
+		K_MAX);
 }
 
 void FORWARD::preprocess(int P, int D, int M,

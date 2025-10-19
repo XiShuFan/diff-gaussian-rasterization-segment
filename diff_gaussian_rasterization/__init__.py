@@ -78,6 +78,8 @@ class _RasterizeGaussians(torch.autograd.Function):
             raster_settings.prefiltered,
             raster_settings.antialiasing,
             raster_settings.MAX_GAUSSPERPIXEL,
+            raster_settings.T_THRESHOLD,
+            raster_settings.K_MAX,
             raster_settings.debug
         )
 
@@ -157,6 +159,8 @@ class GaussianRasterizationSettings(NamedTuple):
     debug : bool
     antialiasing : bool
     MAX_GAUSSPERPIXEL: int
+    T_THRESHOLD: float
+    K_MAX: int
 
 class GaussianRasterizer(nn.Module):
     def __init__(self, raster_settings):

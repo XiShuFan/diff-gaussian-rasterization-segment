@@ -37,6 +37,8 @@ RasterizeGaussiansCUDA(
 	const bool prefiltered,
 	const bool antialiasing,
 	const int MAX_GAUSSPERPIXEL,
+	const float T_THRESHOLD,   // alpha early-stop 阈值
+	const int   K_MAX,         // 每像素最多融合的高斯数量
 	const bool debug);
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor, torch::Tensor>

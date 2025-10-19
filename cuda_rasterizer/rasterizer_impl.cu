@@ -224,6 +224,8 @@ int CudaRasterizer::Rasterizer::forward(
 	// === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
 	int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
 	int* __restrict__ pixel_gaussian_counts,  // shape: (H*W)
+	const float T_THRESHOLD,   // alpha early-stop 阈值
+	const int   K_MAX,          // 每像素最多融合的高斯数量
 	bool debug)
 {
 	const float focal_y = height / (2.0f * tan_fovy);
@@ -343,7 +345,9 @@ int CudaRasterizer::Rasterizer::forward(
 		depth,
 		MAX_GAUSSPERPIXEL,
 		pixel_gaussian_ids,
-		pixel_gaussian_counts), debug)
+		pixel_gaussian_counts,
+		T_THRESHOLD,
+		K_MAX), debug)
 
 	return num_rendered;
 }

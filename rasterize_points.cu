@@ -54,6 +54,8 @@ RasterizeGaussiansCUDA(
 	const bool prefiltered,
 	const bool antialiasing,
 	const int MAX_GAUSSPERPIXEL,
+	const float T_THRESHOLD,   // alpha early-stop 阈值
+	const int   K_MAX,         // 每像素最多融合的高斯数量
 	const bool debug)
 {
   if (means3D.ndimension() != 2 || means3D.size(1) != 3) {
@@ -129,6 +131,8 @@ RasterizeGaussiansCUDA(
 		MAX_GAUSSPERPIXEL,
 		pixel_gaussian_ids.contiguous().data_ptr<int>(),
 		pixel_gaussian_counts.contiguous().data_ptr<int>(),
+		T_THRESHOLD,
+		K_MAX,
 		debug);
   }
   return std::make_tuple(rendered, out_color, radii, geomBuffer, binningBuffer, imgBuffer, out_invdepth, pixel_gaussian_ids, pixel_gaussian_counts);

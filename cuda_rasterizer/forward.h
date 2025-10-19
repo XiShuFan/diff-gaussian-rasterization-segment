@@ -67,7 +67,9 @@ namespace FORWARD
         const int MAX_GAUSSPERPIXEL,
         // === 新增输出：每像素的高斯 id 列表与实际写入计数 ===
         int* __restrict__ pixel_gaussian_ids,	// shape: (H*W*MAX_GAUSSPERPIXEL)
-        int* __restrict__ pixel_gaussian_counts  // shape: (H*W)
+        int* __restrict__ pixel_gaussian_counts,  // shape: (H*W)
+		const float T_THRESHOLD,   // alpha early-stop 阈值
+		const int   K_MAX          // 每像素最多融合的高斯数量
 	);
 }
 
