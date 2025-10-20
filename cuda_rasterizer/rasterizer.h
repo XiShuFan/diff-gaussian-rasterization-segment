@@ -55,8 +55,8 @@ namespace CudaRasterizer
 			const int MAX_GAUSSPERPIXEL = 30,
 			int* pixel_gaussian_ids = nullptr,
 			int* pixel_gaussian_counts = nullptr,
-			const float T_THRESHOLD = 0.01f,   	// alpha early-stop 阈值
-			const int   K_MAX = 10,          	// 每像素最多融合的高斯数量
+			const float T_THRESHOLD = 0.001f,   // alpha early-stop 阈值
+			const int   K_MAX = -1,          	// 每像素最多融合的高斯数量
 			bool debug = false);
 
 		static void backward(
