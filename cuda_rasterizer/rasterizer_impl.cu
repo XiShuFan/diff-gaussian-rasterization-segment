@@ -253,6 +253,16 @@ int CudaRasterizer::Rasterizer::forward(
 		throw std::runtime_error("For non-RGB, provide precomputed Gaussian colors!");
 	}
 
+	// 将 3D 高斯中心 乘以 viewmatrix、projmatrix → 转为屏幕空间 2D 坐标；
+	// （1）计算每个高斯的深度值（z-buffer）；
+	// （2）根据旋转 rotations 和尺度 scales 推导出投影到屏幕的 2D 协方差；
+	// （3）若有 SH，则根据相机视线方向从 SH 系数计算每个高斯的颜色；
+	// （4）计算每个高斯的屏幕包围盒（bounding box）；
+	// （5）标记每个高斯影响的 tile 范围；
+	// （6）输出到 GeometryState：包括 means2D、depths、cov3D、rgb、tiles_touched 等。
+	// 关键结果：
+	// （1）每个高斯知道自己在屏幕上覆盖哪些 tile。
+	// （2）输出 tiles_touched[i] = 该高斯影响的 tile 数量。
 	// Run preprocessing per-Gaussian (transformation, bounding, conversion of SHs to RGB)
 	CHECK_CUDA(FORWARD::preprocess(
 		P, D, M,
